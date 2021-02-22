@@ -24,7 +24,7 @@ function usage() {
     println('\n--------------')
     println('Chrome Control')
     println('--------------\n')
-    println('list                        List all open tabs in all Chrome windows          usage: ./chrome.js list')
+    println('list [query]                List all open tabs in all Chrome windows          usage: ./chrome.js list [query]')
     println('dedup                       Close duplicate tabs                              usage: ./chrome.js dedup')
     println('close <winIdx,tabIdx>       Close a specific tab in a specific window         usage: ./chrome.js close 0,13')
     println('close --title <string(s)>   Close all tabs with titles containing strings     usage: ./chrome.js close --title Inbox "iphone - apple"')
@@ -66,7 +66,9 @@ function chromeControl(argv) {
 
     const cmd = argv[0]
     if (cmd === 'list') {
-        list('all')
+        query = '*'
+        if (argv.length == 2) { query = argv[1].toLowerCase() }
+        list(query)
     } else if (cmd === 'dedup') {
         dedup()
     } else if (cmd === 'close') {
@@ -95,21 +97,23 @@ function chromeControl(argv) {
  */
 
 // List all open tabs
-function list() {
+function list(query) {
     // Iterate all tabs in all windows
     let urlToTitle = {}
     chrome.windows().forEach((window, winIdx) => {
         window.tabs().forEach((tab, tabIdx) => {
-            urlToTitle[tab.url()] = {
-                'title': tab.title() || 'No Title',
-                'url': tab.url(),
-                'winIdx': winIdx,
-                'tabIdx': tabIdx,
-                'match': (tab.title() || 'No Title') + ' - ' + tab.url(),
+            let match =  ((tab.title() || 'No Title') + ' - ' + tab.url()).toLowerCase()
+            if (query === '*' || match.includes(query)) {
+                urlToTitle[tab.url()] = {
+                    'title': tab.title() || 'No Title',
+                    'url': tab.url(),
+                    'winIdx': winIdx,
+                    'tabIdx': tabIdx,
 
-                // Alfred specific properties
-                'arg': `${winIdx},${tabIdx}`,
-                'subtitle': tab.url(),
+                    // Alfred specific properties
+                    'arg': `${winIdx},${tabIdx}`,
+                    'subtitle': tab.url(),
+                }
             }
         })
     })
